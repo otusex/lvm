@@ -104,8 +104,8 @@ sda                       8:0    0   40G  0 disk
 sdb                       8:16   0   10G  0 disk
 └─tmp_root-lv_root       253:0    0   10G  0 lvm  /
 sdc                       8:32   0    2G  0 disk
-sdd                       8:48   0    1G  0 disk
-sde                       8:64   0    1G  0 disk
+sdd                       8:48   0    2G  0 disk
+sde                       8:64   0    2G  0 disk
 
 ```
 
@@ -124,6 +124,102 @@ mkfs.xfs /dev/centos/new_root
 mount /dev/centos/new_root /mnt
 xfsdump -J - /dev/tmp_root/lv_root | xfsrestore -J - /mnt
 ```
+
+
+Again repeat action)
+
+```bash
+for i in /proc/ /sys/ /dev/ /run/ /boot/; do mount --bind $i /mnt/$i; done
+chroot /mnt/
+grub2-mkconfig -o /boot/grub2/grub.cfg
+dracut  --add="lvm"  --force /boot/initramfs-$(uname -r).img $(uname -r) -M
+```
+
+
+Creating a mirror on free disks:
+
+```bash
+pvcreate /dev/sdc /dev/sdd
+vgcreate vg_var /dev/sdc /dev/sdd
+lvcreate -L 950M -m1 -n lv_var vg_var
+```
+
+Create a FS on it and move /var there:
+
+```bash
+mkfs.ext4 /dev/vg_var/lv_var
+mount /dev/vg_var/lv_var /mnt
+rsync -auxvHP /var/ /mnt/
+```
+
+Mounting the new war in the /var directory:
+
+```bash
+umount /mnt
+mount /dev/vg_var/lv_var /var
+```
+
+
+Do reboot, remove tmp root
+
+```bash
+lvremove /dev/tmp_root/lv_root
+vgremove /dev/tmp_root
+pvremove /dev/sdb
+```
+
+
+
+We select the volume for /home on the same principle as we did for /var:
+
+```bash
+lvcreate -n home -L 2G centos
+mkfs.xfs /dev/centos/centos-home
+mount /dev/centos/centos-home /mnt/
+rsync -auxvHP /home/ /mnt/ 
+rm -rf /home/*
+umount /mnt
+mount /dev/centos/centos-home /home/
+```
+
+
+Next, we work with snapshots:
+
+create files in /home and create snap
+```bash
+touch /home/same_file{1..50}
+lvcreate -L 200MB -s -n home_snap
+```
+
+Remove some files:
+
+```bash
+rm -f /home/same_file{11..20}
+```
+
+Recovery from a snapshot:
+
+```bash
+umount /home
+lvconvert --merge /dev/centos/home_snap
+mount /home
+```
+
+
+As a result, we have:
+
+```bash
+cat << EOF > /etc/fstab
+/dev/mapper/centos-root /                         xfs     defaults        0 0
+UUID=0356e691-d6fb-4f8b-a905-4230dbe62a32  /boot  xfs     defaults        0 0
+UUID="b4d7f6cd-2a83-4c4c-973e-49cbb8bcfe4e" /var  ext4    defaults 0 0
+UUID="a8a537c8-a800-4501-8e60-093280b96233" /home xfs     defaults 0 0
+EOF
+```
+
+
+That's all. Thanks.
+
 
 
 

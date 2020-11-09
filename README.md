@@ -28,10 +28,12 @@ sde                       8:64   0    2G  0 disk
 
 Generate fstab
 
+```bash
 cat << EOF > /etc/fstab
 /dev/mapper/centos-root /                                   xfs     defaults        0 0
 UUID=0356e691-d6fb-4f8b-a905-4230dbe62a32  /boot            xfs     defaults        0 0
 EOF
+```
 
 Prepare a temporary root part for / partition:
 

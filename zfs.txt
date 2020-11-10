@@ -28,7 +28,8 @@ reboot
 
 Load driver zfs
 modprobe zfs
- lsmod | grep zfs
+
+lsmod | grep zfs
 zfs                  3986816  0
 zunicode              331170  1 zfs
 zlua                  151525  1 zfs
@@ -39,7 +40,7 @@ icp                   301854  1 zfs
 spl                   104299  5 icp,zfs,zavl,zcommon,znvpair
 
 
-Create mirroreith cache
+Create mirror with cache
 zpool create pool mirror /dev/sdb /dev/sdc  cache /dev/sdd
 
 

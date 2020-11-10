@@ -1,3 +1,5 @@
+# ZFS - working with zfs is described in the file zfs.txt
+
 # LVM snapshots,mirrors
 
 

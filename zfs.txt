@@ -1,0 +1,109 @@
+
+
+Disks:
+lsblk
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sda      8:0    0  40G  0 disk
+`-sda1   8:1    0  40G  0 part /
+sdb      8:16   0   2G  0 disk
+sdc      8:32   0   2G  0 disk
+sdd      8:48   0   2G  0 disk
+sde      8:64   0   2G  0 disk
+
+Show Centos release
+cat /etc/redhat-release
+
+
+Install zfs-release
+yum install http://download.zfsonlinux.org/epel/zfs-release.el7_8.noarch.rpm
+
+
+Change zfs.repo
+vi /etc/yum.repos.d/zfs.repo
+
+Install ZFS
+yum install zfs -y
+
+reboot
+
+Load driver zfs
+modprobe zfs
+ lsmod | grep zfs
+zfs                  3986816  0
+zunicode              331170  1 zfs
+zlua                  151525  1 zfs
+zcommon                89551  1 zfs
+znvpair                94388  2 zfs,zcommon
+zavl                   15167  1 zfs
+icp                   301854  1 zfs
+spl                   104299  5 icp,zfs,zavl,zcommon,znvpair
+
+
+Create mirroreith cache
+zpool create pool mirror /dev/sdb /dev/sdc  cache /dev/sdd
+
+
+Show status
+zpool status pool
+  pool: pool
+ state: ONLINE
+  scan: none requested
+config:
+
+	NAME        STATE     READ WRITE CKSUM
+	pool        ONLINE       0     0     0
+	  mirror-0  ONLINE       0     0     0
+	    sdb     ONLINE       0     0     0
+	    sdc     ONLINE       0     0     0
+	cache
+	  sdd       ONLINE       0     0     0
+
+
+Current disks
+lsblk
+NAME   MAJ:MIN RM SIZE RO TYPE MOUNTPOINT
+sda      8:0    0  40G  0 disk
+`-sda1   8:1    0  40G  0 part /
+sdb      8:16   0   2G  0 disk
+|-sdb1   8:17   0   2G  0 part
+`-sdb9   8:25   0   8M  0 part
+sdc      8:32   0   2G  0 disk
+|-sdc1   8:33   0   2G  0 part
+`-sdc9   8:41   0   8M  0 part
+sdd      8:48   0   2G  0 disk
+|-sdd1   8:49   0   2G  0 part
+`-sdd9   8:57   0   8M  0 part
+sde      8:64   0   2G  0 disk
+
+
+Create snapshot, -r - if you need create recurcive snapshot
+zfs snapshot /pool@mySnap
+
+Show snap
+zfs list -t snapshot
+NAME          USED  AVAIL     REFER  MOUNTPOINT
+pool@mySnap     0B      -       31K  -
+
+
+Visible .zfs folder
+cd /pool
+zfs set snapdir=visible pool
+
+ls -la
+total 7
+drwxr-xr-x.  3 root root  12 Nov 10 09:20 .
+dr-xr-xr-x. 18 root root 252 Nov 10 09:16 ..
+drwxrwxrwx.  1 root root   0 Nov 10 09:16 .zfs
+
+
+Mount our pool to /opt
+zfs set mountpoint=/opt pool
+
+df -h /opt
+pool            1.8G  128K  1.8G   1% /opt
+
+Show mount /opt
+zfs list
+NAME   USED  AVAIL     REFER  MOUNTPOINT
+pool   156K  1.75G       38K  /opt
+
